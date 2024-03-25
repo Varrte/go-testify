@@ -1,0 +1,61 @@
+package main
+
+import (
+	"net/http"
+	"strconv"
+	"strings"
+)
+
+var cafeList = map[string][]string{
+	"moscow": []string{"Мир кофе", "Сладкоежка", "Кофе и завтраки", "Сытый студент"},
+}
+
+// обработчик
+func mainHandle(w http.ResponseWriter, req *http.Request) {
+	//записываем в countStr значение параметра в завпросе метода Get
+	countStr := req.URL.Query().Get("count")
+	// проверяет если параметр count в пути
+	if countStr == "" {
+		// запись в загаловок статус-ответа
+		w.WriteHeader(http.StatusBadRequest)
+		//запись в тело ответа
+		w.Write([]byte("count missing"))
+		return
+	}
+	// перевод строки countStr в целое число
+	count, err := strconv.Atoi(countStr)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong count value"))
+		return
+	}
+	// получаем имя  ключа мапы  cafeList, по запрашиваемому
+	// пути метода get
+	city := req.URL.Query().Get("city")
+
+	cafe, ok := cafeList[city]
+
+	if !ok {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("wrong city value"))
+		return
+	}
+
+	if count > len(cafe) {
+		count = len(cafe)
+	}
+
+	// strings.Join объединяет  строку из среза по ","
+	answer := strings.Join(cafe[:count], ",")
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(answer))
+}
+
+func main() {
+	http.HandleFunc("/cafe", mainHandle)
+	err := http.ListenAndServe("http://localhost:8080", nil)
+	if err != nil {
+		panic(err)
+	}
+
+}
